@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-import xgboost
+#import catboost
+from tqdm import tqdm 
 
 #%%
 
@@ -59,5 +60,51 @@ for i in range(4):
         note[j] = np.mod(df.iloc[j,i],12)
         
     df[f'note{i}'] = note
+
+#%%
+
+#for each individual voice, build regressor on all current features, and previous {lag} data points
+
+# set lag
+# take {lag} previous data points and add to row as features (but only from the {lag}th data point onwards)
+# set target var as the singers note(0-120) and remove the other singers
+
+
+lag = 5
+df1 = df.iloc[5:,:]
+
+
+for i in tqdm(range(lag,lag + len(df1.iloc[:,0]))):
+    
+    last_lag_points = df.iloc[i-lag:i,:]
+    last_lag_points_flat = last_lag_points.iloc[0,:]
+    
+    for j in range(1,lag):
+         last_lag_points_flat = pd.concat([last_lag_points_flat,last_lag_points.iloc[j,:]],axis = 0)
+         last_lag_points_flat.index = range(len(last_lag_points_flat))
+         
+    if i == lag:
+        df2 = pd.concat([df.iloc[i,:4],last_lag_points_flat])
+    else:
+        temp_row = pd.concat([df.iloc[i,:4],last_lag_points_flat])
+        df2 = pd.concat([df2,temp_row], axis = 1)
+
+
+df2 = df2.transpose()
+
+
+#%%
+
+
+#lets start with predicting singer4
+
+df3 = df2.iloc[:,3:]
+
+
+
+
+
+
+
 
 
