@@ -7,6 +7,16 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.model_selection import TimeSeriesSplit
 
 
+class Voice:
+    """ Class for each voice to make all model-related data corresponding to each voice easily accessible """
+    def __init__(self, name):
+        self.name = name  # dummy property to make the objects explicitly distinguishable
+
+    # TODO
+    def check_scores(self):
+        return
+
+
 # Created this process as a function, just in case we want to do this for multiple songs
 def notes_to_octaves(voices: list) -> list:
     """ Transform every note to its corresponding octave """
@@ -37,24 +47,30 @@ def one_hot_encode_input(raw_input: list, set_raw_input: list) -> list:
     return X_vec_all
 
 
-# TODO: This needs to be rewritten, was used only for previous testing with the counting loss
-def check_scores(regressor, X_train, X_test, y_train, y_test, set_X, Y) -> None:
-    """ Testing score on train and test set with hand-crafted loss function """
-    print(f"Score on train set: {regressor.score(X_train, y_train)}")
-    print(f"Score on test set: {regressor.score(X_test, y_test)}")
+def fit_model_to_voice(voice: object, voice_encoded: list, transformed_voice: list) -> object:
+    # Assigning input and output with a window size of 1
+    voice.X = np.array(voice_encoded[:-1])
+    voice.y_encoded = np.array(voice_encoded[1:])
+    voice.y_raw = np.array(transformed_voice[1:])
 
-    predictions = []
-    correct_predictions = []
-    for i in range(len(X_train)):
-        yhat = regressor.predict([X_train[i]])
-        pitch = set_X[yhat.tolist()[0].index(max(yhat.tolist()[0]))]
-        predictions.append(pitch)
-        if pitch == Y[i]:  # Y[i] = X_train[i+1], but without the one-hot encoding form
-            correct_predictions.append(pitch)
-    print(f"Train set size: {len(X_train)}, Correct predictions: {len(correct_predictions)}")
-    print(f"Total predictions: {len(predictions)}\n")
+    # TODO: Implement CV properly, maybe even LOOCV if possible
+    # Split train and test data with default 80-20 ratio
+    voice.tscv = TimeSeriesSplit(n_splits=5)
+    for train_index, test_index in voice.tscv.split(voice.X):
+        voice.X_train, voice.X_test = voice.X[train_index], voice.X[test_index]
+        voice.y_train, voice.y_test = voice.y_encoded[train_index], voice.y_encoded[test_index]
+
+    # TODO: Implement sklearn's grid-search for finding out window size and alpha for Ridge
+    voice.lin_reg = LinearRegression()
+    voice.lin_reg.fit(voice.X_train, voice.y_train)
+
+    voice.ridge_reg = Ridge(alpha=1)
+    voice.ridge_reg.fit(voice.X_train, voice.y_train)
+
+    return voice
 
 
+# 0) Read data
 data = pd.read_csv("F.txt", sep="\t", header=None)
 voices_all = [list(data[i]) for i in range(data.shape[1])]
 
@@ -81,7 +97,7 @@ set_notes_transformed_to_octaves = [list(set(voice)) for voice in notes_transfor
 octaves_encoded_all_voices = one_hot_encode_input(notes_transformed_to_octaves, set_notes_transformed_to_octaves)
 
 # TODO: Join encodings
-
+# 3)
 
 # 4) Exploring non-one-hot encoded octaves for recognizing possible patterns
 titles = ["Soprano", "Alto", "Tenor", "Bass"]
@@ -110,19 +126,35 @@ plt.close()
 figure.savefig(f"Histograms of octaves, with breaks denoted as '-2'.pdf")
 
 
-# # Assigning input and output with a window size of 1
-# X_t0 = np.array(X_vec[:-1])
-# y = np.array(X_vec[1:])
-#
-# # Split train and test dataa with default 80-20 ratio
-# tscv = TimeSeriesSplit(n_splits=5)
-# for train_index, test_index in tscv.split(X_t0):
-#     X_train, X_test = X_t0[train_index], X_t0[test_index]
-#     y_train, y_test = y[train_index], y[test_index]
-#
-# lin_reg = LinearRegression().fit(X_train, y_train)
-# ridge_reg = Ridge(alpha=15).fit(X_train, y_train)
-#
-#
-# check_scores(lin_reg, X_train, X_test, y_train, y_test, set_X, Y)
-# check_scores(ridge_reg,  X_train, X_test, y_train, y_test, set_X, Y)
+voice_1_note = fit_model_to_voice(Voice("Soprano notes"), notes_encoded_all_voices[0], notes_transformed_to_octaves[0])
+voice_1_octave = fit_model_to_voice(Voice("Soprano octaves"), octaves_encoded_all_voices[0], notes_transformed_to_octaves[0])
+
+voice_2_note = fit_model_to_voice(Voice("Alto notes"), notes_encoded_all_voices[1], notes_transformed_to_octaves[1])
+voice_2_octave = fit_model_to_voice(Voice("Alto octaves"), octaves_encoded_all_voices[1], notes_transformed_to_octaves[1])
+
+voice_3_note = fit_model_to_voice(Voice("Tenor notes"), notes_encoded_all_voices[2], notes_transformed_to_octaves[2])
+voice_3_octave = fit_model_to_voice(Voice("Tenor octaves"), octaves_encoded_all_voices[2], notes_transformed_to_octaves[2])
+
+voice_4_note = fit_model_to_voice(Voice("Bass notes"), notes_encoded_all_voices[3], notes_transformed_to_octaves[3])
+voice_4_octave = fit_model_to_voice(Voice("Bass octaves"), octaves_encoded_all_voices[3], notes_transformed_to_octaves[3])
+
+
+# This can be be deleted later on,
+# just a sanity check whether the object oriented approach produces proper values or not
+# ---------------------------------------------------------------------------------------------------------------------
+voices_note = [voice_1_note, voice_2_note, voice_3_note, voice_4_note]
+voices_octave = [voice_1_octave, voice_2_octave, voice_3_octave, voice_4_octave]
+for i in range(len(voices_note)):
+    print(f"Checking prediction values for voice {i+1}...")
+    print(f"Train score on notes: {voices_note[i].lin_reg.score(voices_note[i].X_train, voices_note[i].y_train)}")
+    print(f"Test score on notes: {voices_note[i].lin_reg.score(voices_note[i].X_test, voices_note[i].y_test)}")
+    print(f"Train score on octaves: {voices_octave[i].lin_reg.score(voices_octave[i].X_train, voices_octave[i].y_train)}")
+    print(f"Test score on octaves: {voices_octave[i].lin_reg.score(voices_octave[i].X_test, voices_octave[i].y_test)}")
+    print("-------------------------------------------------------------------------\n")
+# ---------------------------------------------------------------------------------------------------------------------
+
+# TODO: Finish this
+# Testing suggested loss function for one prediction
+test_prediction = np.power(voice_1_note.lin_reg.predict([voice_1_note.X_train[0]]), 3)
+normalization_denominator = sum(test_prediction[0])
+normalized_predictions = [pred/normalization_denominator for pred in test_prediction[0]]
