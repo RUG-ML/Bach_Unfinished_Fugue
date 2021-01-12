@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import random, copy
 import pprint
 
 from sklearn.linear_model import LinearRegression, Ridge
@@ -68,6 +69,18 @@ def fit_model_to_voice(voice: object, voice_encoded: list, transformed_voice: li
     voice.ridge_reg.fit(voice.X_train, voice.y_train)
 
     return voice
+
+
+def get_n_likely_indices(predictions_vec: list, n: int) -> list:
+    """ Retrieves the 'n' most probable indices of the model's output """
+    indices = []
+    # creating copy to assure the "get_n_likely" indices doesn't mess things up
+    vec_copy = copy.deepcopy(list(predictions_vec))
+    for i in range(n):
+        max_idx = vec_copy.index(max(vec_copy))
+        indices.append(max_idx)
+        vec_copy[max_idx] = min(vec_copy)
+    return indices
 
 
 # 0) Read data
@@ -155,6 +168,22 @@ for i in range(len(voices_note)):
 
 # TODO: Finish this
 # Testing suggested loss function for one prediction
-test_prediction = np.power(voice_1_note.lin_reg.predict([voice_1_note.X_train[0]]), 3)
-normalization_denominator = sum(test_prediction[0])
-normalized_predictions = [pred/normalization_denominator for pred in test_prediction[0]]
+
+# a) emphasize and deemphasize large and small values
+test_pred = np.power(voice_2_note.lin_reg.predict([voice_2_note.X_train[578]]), 3)
+
+# b) normalize values so they sum to 1
+normalization_denominator = sum(test_pred[0])
+normalized_preds = [pred/normalization_denominator for pred in test_pred[0]]
+
+# c) get 'n' number of indices that have a high probability
+# likely_indices = get_n_likely_indices(normalized_preds, 3)
+# normalized_preds.sort(reverse=True)
+# chosen_preds = normalized_preds[:len(likely_indices)]
+#
+# # d) randomization of final choice
+# probability_idx_dict = {idx: prob for idx, prob in zip(likely_indices, chosen_preds)}
+# probability_idx_keys = list(probability_idx_dict.keys())
+# random.shuffle(probability_idx_keys)
+# final_prediction = probability_idx_dict[probability_idx_keys[0]]
+# print(final_prediction)
