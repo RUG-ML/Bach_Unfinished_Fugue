@@ -1,4 +1,3 @@
-# Bach_Unfinished_Fugue
 Repo for completing Bach's famous unfinished fugue using ML. <br/>
 <br/>
 bach_pred_final820: the last 820 rows of the prediction. Therefore the first 410 rows were written by bach, and the final 410 rows was written by the model.<br/>
