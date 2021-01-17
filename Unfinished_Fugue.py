@@ -1,5 +1,3 @@
-#Bach Project
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -8,7 +6,7 @@ from tqdm import tqdm
 
 #%%
 
-df = pd.read_csv("C:/Users/alex/Documents/myPython/RUG/Machine Learning 2020/F.txt", sep="\t", header=None)
+df = pd.read_csv("F.txt", sep="\t", header=None)
 df.columns = ['Singer1','Singer2','Singer3','Singer4']
 df0 = df.copy()
 
@@ -60,6 +58,95 @@ for i in range(4):
         note[j] = np.mod(df.iloc[j,i],12)
         
     df[f'note{i}'] = note
+    
+    
+    
+#%%    
+
+#Analysing the lengths of notes and finding their frequencies
+
+lengths1 = []
+first_val1 = df.iloc[0,0]
+length1 = 0
+
+lengths2 = []
+first_val2= df.iloc[0,1]
+length2 = 0
+
+lengths3 = []
+first_val3 = df.iloc[0,2]
+length3 = 0
+
+lengths4 = []
+first_val4 = df.iloc[0,3]
+length4 = 0
+
+for i in range(1,len(df.iloc[:,0])):
+    if df.iloc[i,0] == df.iloc[i-1,0]:
+        length1 = length1 + 1
+    else:
+        lengths1.append(length1)
+        length1= 0
+        
+    if df.iloc[i,1] == df.iloc[i-1,1]:
+        length2 = length2 + 1
+    else:
+        lengths2.append(length2)
+        length2 = 0
+        
+    if df.iloc[i,2] == df.iloc[i-1,2]:
+        length3 = length3 + 1
+    else:
+        lengths3.append(length3)
+        length3 = 0
+        
+    if df.iloc[i,3] == df.iloc[i-1,3]:
+        length4 = length4 + 1
+    else:
+        lengths4.append(length4)
+        length4 = 0
+      
+for i in range(len(lengths1)-6):
+    if lengths1[i] > 50:
+        lengths1.pop(i)
+
+for i in range(len(lengths2)-3):
+    if lengths2[i] > 50:
+        lengths2.pop(i)
+        
+for i in range(len(lengths3)-5):
+    if lengths3[i] > 50:
+        lengths3.pop(i)
+        
+for i in range(len(lengths4)-5):
+    if lengths4[i] > 50:
+        lengths4.pop(i)
+        
+length_pdf1 = np.zeros(51)
+length_pdf2 = np.zeros(51)
+length_pdf3 = np.zeros(51)
+length_pdf4 = np.zeros(51)
+
+for i in range(len(lengths1)):
+    length_pdf1[lengths1[i]] = length_pdf1[lengths1[i]] + 1
+
+for i in range(len(lengths2)):
+    length_pdf2[lengths2[i]] = length_pdf2[lengths2[i]] + 1
+    
+for i in range(len(lengths3)):
+    length_pdf3[lengths3[i]] = length_pdf3[lengths3[i]] + 1
+    
+for i in range(len(lengths4)):
+    length_pdf4[lengths4[i]] = length_pdf4[lengths4[i]] + 1
+    
+length_choices = np.array(range(51))
+    
+length_pdf1 = length_pdf1/length_pdf1.sum()
+length_pdf2 = length_pdf2/length_pdf2.sum()
+length_pdf3 = length_pdf3/length_pdf3.sum()
+length_pdf4 = length_pdf4/length_pdf4.sum()
+    
+    
 
 #%%
 
@@ -197,15 +284,19 @@ pred1 = np.round(model1.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astyp
 #%%
 
 
-
-
-
 def next_note(df_pred, lag):
     df_pred_0 = df_pred.copy()
     df_pred_1 = df_pred.copy()
         #feature engineering
-    
-    #ONLY RUN THIS CELL ONCE 
+          
+    global change_note1
+    global change_note2
+    global change_note3
+    global change_note4
+    global length_pdf1
+    global length_pdf2
+    global length_pdf3
+    global length_pdf4
     
     #binary flag for when the singers sing
     a = 1
@@ -280,21 +371,97 @@ def next_note(df_pred, lag):
     df_3 = pd.concat([df2.iloc[:,2], df2.iloc[:,4:]],axis = 1)
     df_4 = pd.concat([df2.iloc[:,3], df2.iloc[:,4:]],axis = 1)
     
-    pred1 = np.round(model1.predict(pd.DataFrame(df_1.iloc[-1,1:]).transpose().astype('int')),0)
-    pred2 = np.round(model2.predict(pd.DataFrame(df_2.iloc[-1,1:]).transpose().astype('int')),0)
-    pred3 = np.round(model3.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astype('int')),0)
-    pred4 = np.round(model4.predict(pd.DataFrame(df_4.iloc[-1,1:]).transpose().astype('int')),0)
-    next_pred = pd.DataFrame([pred1[0],pred2[0],pred3[0],pred4[0]]).transpose()
+    
+    if change_note1 == 0:
+        pred1 = np.round(model1.predict(pd.DataFrame(df_1.iloc[-1,1:]).transpose().astype('int')),0)
+        change_note1 = np.random.choice(length_choices, size  = 1, p = length_pdf1)
+        pred1 = pred1[0]
+        
+        if pred1 == df_pred.iloc[-1,0]:
+            if pred1 < 15:
+                pred1 = pred1 + float(round(np.random.normal(45, 10, 1)[0],0))
+            else:
+                pred1 = pred1 + float(round(np.random.normal(0, 6, 1)[0],0))
+        
+        if pred1 < 0:
+                pred1 = float(0)
+    else:
+        change_note1 = change_note1 - 1
+        pred1 = df_pred.iloc[-1,0]
+        
+    
+    if change_note2 == 0:
+        pred2 = np.round(model2.predict(pd.DataFrame(df_2.iloc[-1,1:]).transpose().astype('int')),0)
+        change_note2 = np.random.choice(length_choices, size  = 1, p = length_pdf2)
+        pred2 = pred2[0]
+        
+        if pred2 == df_pred.iloc[-1,1]:
+            if pred2 < 15:
+                pred2 = pred2 + float(round(np.random.normal(45, 10, 1)[0],0))
+            else:
+                pred2 = pred2 + float(round(np.random.normal(0, 6, 1)[0],0))
+        
+        if pred2 < 0:
+                pred2 = float(0)        
+    else:
+        change_note2 = change_note2 - 1
+        pred2 = df_pred.iloc[-1,1]
+        
+        
+    if change_note3 == 0:
+        pred3 = np.round(model3.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astype('int')),0)
+        change_note3 = np.random.choice(length_choices, size  = 1, p = length_pdf3)
+        pred3 = pred3[0]
+        
+        if pred3 == df_pred.iloc[-1,2]:
+            if pred3 < 15:
+                pred3 = pred3 + float(round(np.random.normal(45, 10, 1)[0],0))
+            else:
+                pred3 = pred3 + float(round(np.random.normal(0, 6, 1)[0],0))
+        
+        if pred3 < 0:
+                pred3 = float(0)
+    else:
+        change_note3 = change_note3 - 1
+        pred3 = df_pred.iloc[-1,2]
+        
+    if change_note4 == 0:
+        pred4 = np.round(model4.predict(pd.DataFrame(df_4.iloc[-1,1:]).transpose().astype('int')),0)
+        change_note4 = np.random.choice(length_choices, size  = 1, p = length_pdf4)
+        pred4 = pred4[0]
+        
+        if pred4 == df_pred.iloc[-1,3]:
+            if pred4 < 15:
+                pred4 = pred4 + float(round(np.random.normal(45, 10, 1)[0],0))
+            else:
+                pred4 = pred4 + float(round(np.random.normal(0, 6, 1)[0],0))
+        
+        if pred4 < 0:
+                pred4 = float(0)
+    else:
+        change_note4 = change_note4 - 1
+        pred4 = df_pred.iloc[-1,3]
+    
+    
+    next_pred = pd.DataFrame([pred1,pred2,pred3,pred4]).transpose()
     
     df_pred_0.columns = range(4)
     df_pred = pd.concat([df_pred_0.iloc[:,:],next_pred.iloc[:,:]],axis = 0)
     df_pred.columns = ['Singer1','Singer2','Singer3','Singer4']
+    
     return df_pred
 
 
 #%%
 
-its = 1000
+its = 410
+
+
+change_note1 = 0
+change_note2 = 0
+change_note3 = 0
+change_note4 = 0
+
 
 df_pred = next_note(df0, lag)
 for i in tqdm(range(its)):
@@ -304,5 +471,12 @@ df_pred.index = range(len(df_pred))
 
 #%%
 
-np.savetxt('bach_pred1000.txt', df_pred.values, fmt='%d')
+np.savetxt('bach_pred410.txt', df_pred.values, fmt='%d')
+
+
+
+
+
+
+
 
