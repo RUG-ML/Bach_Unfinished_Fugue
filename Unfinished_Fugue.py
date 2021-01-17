@@ -454,7 +454,7 @@ def next_note(df_pred, lag):
 
 #%%
 
-its = 150
+its = 410
 
 
 change_note1 = 0
@@ -471,7 +471,7 @@ df_pred.index = range(len(df_pred))
 
 #%%
 
-np.savetxt('bach_pred1000.txt', df_pred.values, fmt='%d')
+np.savetxt('bach_pred410.txt', df_pred.values, fmt='%d')
 
 
 
