@@ -97,7 +97,7 @@ df2 = df2.transpose()
 #%%
 
 
-#lets start with predicting singer4
+#singer4
 
 df_4 = df2.iloc[:,3:]
 
@@ -294,10 +294,15 @@ def next_note(df_pred, lag):
 
 #%%
 
-its = 50
+its = 1000
 
 df_pred = next_note(df0, lag)
 for i in tqdm(range(its)):
     df_pred = next_note(df_pred,lag)
 
 df_pred.index = range(len(df_pred))
+
+#%%
+
+np.savetxt('bach_pred1000.txt', df_pred.values, fmt='%d')
+
