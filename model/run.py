@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import copy
 import pprint
@@ -10,6 +11,7 @@ from typing import Union
 
 from sklearn.linear_model import LinearRegression, Ridge, RidgeCV
 from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import log_loss
 
 warnings.filterwarnings("ignore")
 
@@ -113,6 +115,8 @@ def fit_model_to_voice(voice: object, cv=False, regularization=False, learning=F
     voice.X_encoded_windowed = np.array(window_size(voice.X_encoded, voice.win_size))
     voice.y_encoded_windowed = np.array(voice.X_encoded[voice.win_size:])
 
+    # always set learning=True if you want to make predictions on the training/test set
+    # the learning=False clause is trained on the entire dataset
     if learning:
         voice.cv_losses = {'train': {'normal': [], 'feedback': []}, 'test': {'normal': [], 'feedback': []}}
         cv_count = 0
@@ -311,12 +315,12 @@ for i in range(4):
     octaves_encoded_all_voices.append(one_hot_encode(notes_transformed_to_octaves[i], set_notes_transformed_to_octaves[i]))
 
 
-if __name__ == "__main__":
-    pred410 = []
-    window_size = 115
-    for i in range(4):
-        note_model = fit_model_to_voice(Voice('note', i, window_size), regularization=True)
-        octave_model = fit_model_to_voice(Voice('octave', i, window_size), regularization=True)
-        pred410.append(generate_notes(note_model, octave_model, 410))
-    write_to_txt(pred410)
+# if __name__ == "__main__":
+#     pred410 = []
+#     window_size = 115
+#     for i in range(4):
+#         note_model = fit_model_to_voice(Voice('note', i, window_size), regularization=True)
+#         octave_model = fit_model_to_voice(Voice('octave', i, window_size), regularization=True)
+#         pred410.append(generate_notes(note_model, octave_model, 410))
+#     write_to_txt(pred410)
 

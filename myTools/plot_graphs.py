@@ -1,47 +1,102 @@
+import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import os
 import pprint
 from model.run import Voice
-from model.run import notes_transformed_to_octaves, set_notes_transformed_to_octaves
+from model.run import notes_transformed_to_octaves, set_notes_transformed_to_octaves, data, reduced_notes
 
 
-def octave_frequency() -> None:
-    # 4) Exploring non-one-hot encoded octaves for recognizing possible patterns
-    titles = ["Soprano", "Alto", "Tenor", "Bass"]
+def plt_notes(reduced=False) -> None:
+    """ Plot original and reduced notes - voice1 """
+    def adjust_yticks():
+        if reduced:
+            return plt.yticks(np.arange(-1, 12), fontsize=fontsize)
+        return plt.yticks(np.arange(0, 81, 10), fontsize=fontsize)
 
+    if reduced:
+        notes = reduced_notes[0]
+        plt_name = "reduced"
+        ylabel = "MIDI encoded and reduced pitch value"
+    else:
+        notes = data[0]
+        plt_name = "original"
+        ylabel = "MIDI encoded pitch value"
+
+    pd_notes = pd.DataFrame([notes]).transpose()
+    figure = plt.figure(figsize=(16, 12))
+    fontsize = 30
+    plt.plot(pd_notes)
+    adjust_yticks()
+    plt.xticks(fontsize=fontsize)
+    plt.xlabel("n", fontsize=fontsize + 5)
+    plt.ylabel(ylabel, fontsize=fontsize)
+    plt.title("Voice 1", fontsize=fontsize)
+    figure.savefig(f"Voice1_{plt_name}_notes.pdf")
+    plt.close()
+
+    return None
+
+
+def plt_octave_frequency(voice_num: int, plt_multiple: bool) -> None:
+    """ Exploring non-one-hot encoded octaves for recognizing possible patterns """
+    fontsize = 30
     figure = plt.figure(figsize=(16, 12))
     x_axis = [x for x in range(len(notes_transformed_to_octaves[0]))]
-    for idx, voice in enumerate(notes_transformed_to_octaves):
-        plt.subplot(2, 2, idx + 1)
-        plt.plot(x_axis, voice)
-        plt.xlabel("Time")
-        plt.ylabel("Octave")
-        plt.ylim(-2, max(max(set_notes_transformed_to_octaves)))
-        plt.title(f"Frequency of octaves in voice: {idx} ({titles[idx]})")
-    plt.close()
-    figure.savefig(f"Frequency of octaves, with breaks denoted as '-2'.pdf")
 
+    # plot all voice_num together
+    if plt_multiple:
+        for idx, voice in enumerate(notes_transformed_to_octaves[:voice_num]):
+            plt.subplot(2, 2, idx + 1)
+            plt.plot(x_axis, voice)
+            plt.xlabel("n", fontsize=fontsize)
+            plt.xticks(fontsize=fontsize)
+            plt.yticks(fontsize=fontsize)
+            plt.ylabel("Octave", fontsize=fontsize)
+            plt.ylim(-2, max(max(set_notes_transformed_to_octaves)))
+            plt.title(f"Voice {idx+1}", fontsize=fontsize)
+        plt.close()
+        figure.savefig(f"Voice {'-'.join([str(x) for x in list(range(1,voice_num+1))])} octaves.pdf")
+    else:
+        # plot the single, chosen voice
+        plt.plot(x_axis, notes_transformed_to_octaves[voice_num-1])
+        plt.xlabel("n", fontsize=fontsize)
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
+        plt.ylabel("Octave", fontsize=fontsize)
+        plt.ylim(-2, max(max(set_notes_transformed_to_octaves)))
+        plt.title(f"Voice {voice_num}", fontsize=fontsize)
+        plt.close()
+        figure.savefig(f"Voice{voice_num}_octaves.pdf")
+
+    return None
+
+
+def plt_octave_histogram(voices=4) -> None:
     figure = plt.figure(figsize=(16, 12))
     x_min, x_max = [min(min(set_notes_transformed_to_octaves)), max(max(set_notes_transformed_to_octaves))]
     bins_num = len(range(x_min, x_max+1))*10
-    for idx, voice in enumerate(notes_transformed_to_octaves):
+    for idx, voice in enumerate(notes_transformed_to_octaves[:voices]):
         plt.subplot(2, 2, idx + 1)
         plt.hist(voice, bins=bins_num, range=(x_min, x_max))
         plt.xlabel("Octave")
-        plt.title(f"Frequency of octaves in voice: {idx} ({titles[idx]})")
+        plt.title(f"Voice {idx}")
     plt.close()
     figure.savefig(f"Histograms of octaves, with breaks denoted as '-2'.pdf")
 
+    return None
 
-def flexibility_curve(folder_name, x_axis_name: str) -> None:
+
+def plt_flexibility_curve(folder_name, x_axis_name: str) -> None:
     losses_train_normal = []
     losses_train_feedback = []
     losses_test_normal = []
     losses_test_feedback = []
 
     interest = []
-    path = "C:\\Users\\varga\\Google Drive\\Hollandia\\Groningen\\School\\Courses\\1B\\Machine Learning\\PROJECT\\CODE\\GITHUB\\Peter\\Bach_Unfinished_Fugue\\myTools"
+    path = "C:\\Users\\varga\\Google Drive\\Hollandia\\Groningen\\School\\Courses\\1B\\Machine Learning" \
+           "\\PROJECT\\CODE\\GITHUB\\Peter\\Bach_Unfinished_Fugue\\myTools"
     os.chdir(f"pickles\\{folder_name}")
     files = os.listdir('.')
     for i in range(len(files)):
@@ -76,15 +131,23 @@ def flexibility_curve(folder_name, x_axis_name: str) -> None:
     os.chdir(path)
     print(os.getcwd())
 
+    return None
 
-if __name__ == "__main__":
-    # folders = ['lin_reg\\voice1_note_weigth(1)', 'lin_reg\\voice1_octave_weigth(1)',
-    #            'ridge_reg\\voice1_note_weigth(1)', 'ridge_reg\\voice1_octave_weigth(1)',
-    #            'ridge_reg\\voice2_note_weigth(1)', 'ridge_reg\\voice2_octave_weigth(1)',
-    #            'ridge_reg\\voice3_note_weigth(1)', 'ridge_reg\\voice3_octave_weigth(1)',
-    #            'ridge_reg\\voice4_note_weigth(1)', 'ridge_reg\\voice4_octave_weigth(1)',
-    #            'ridge_reg\\voice1_note_weigth(2)', 'ridge_reg\\voice1_octave_weigth(2)']
-    # for folder in folders:
-    #     flexibility_curve('ridge_reg\\voice1_note_weigth(2)', "window_size")
-    flexibility_curve('ridge_reg\\voice1_note_weigth(1)_2', "window_size")
+
+plt_octave_frequency(2, False)
+plt_octave_frequency(3, False)
+plt_octave_frequency(4, False)
+# plt_notes()
+# plt_notes(reduced=True)
+
+# if __name__ == "__main__":
+#     # folders = ['lin_reg\\voice1_note_weigth(1)', 'lin_reg\\voice1_octave_weigth(1)',
+#     #            'ridge_reg\\voice1_note_weigth(1)', 'ridge_reg\\voice1_octave_weigth(1)',
+#     #            'ridge_reg\\voice2_note_weigth(1)', 'ridge_reg\\voice2_octave_weigth(1)',
+#     #            'ridge_reg\\voice3_note_weigth(1)', 'ridge_reg\\voice3_octave_weigth(1)',
+#     #            'ridge_reg\\voice4_note_weigth(1)', 'ridge_reg\\voice4_octave_weigth(1)',
+#     #            'ridge_reg\\voice1_note_weigth(2)', 'ridge_reg\\voice1_octave_weigth(2)']
+#     # for folder in folders:
+#     #     flexibility_curve('ridge_reg\\voice1_note_weigth(2)', "window_size")
+#     flexibility_curve('ridge_reg\\voice1_note_weigth(1)_2', "window_size")
 
