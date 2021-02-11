@@ -8,7 +8,7 @@ from model import Voice
 from model import notes_transformed_to_octaves, set_notes_transformed_to_octaves, data, reduced_notes
 
 
-def plt_notes(reduced=False) -> None:
+def plt_notes(reduced=False, predictions=None, voice=None) -> None:
     """ Plot original and reduced notes - voice1 """
     def adjust_yticks():
         if reduced:
@@ -19,9 +19,14 @@ def plt_notes(reduced=False) -> None:
         notes = reduced_notes[0]
         plt_name = "reduced"
         ylabel = "MIDI encoded and reduced pitch value"
-    else:
+    elif not reduced and not predictions:
         notes = data[0]
         plt_name = "original"
+        ylabel = "MIDI encoded pitch value"
+
+    if predictions and voice:
+        notes = predictions
+        plt_name = "prediction"
         ylabel = "MIDI encoded pitch value"
 
     pd_notes = pd.DataFrame([notes]).transpose()
@@ -32,8 +37,14 @@ def plt_notes(reduced=False) -> None:
     plt.xticks(fontsize=fontsize)
     plt.xlabel("n", fontsize=fontsize + 5)
     plt.ylabel(ylabel, fontsize=fontsize)
-    plt.title("Voice 1", fontsize=fontsize)
-    figure.savefig(f"Voice1_{plt_name}_notes.pdf")
+    # plt.vlines(3824, ymin=min(pd_notes), ymax=max(pd_notes), color="r", linestyles="solid")
+    plt.axvline(3824, color="r")
+    if predictions and voice:
+        plt.title(f"Voice {voice}", fontsize=fontsize)
+        figure.savefig(f"Voice{voice}_{plt_name}.pdf")
+    else:
+        plt.title(f"Voice 1", fontsize=fontsize)
+        figure.savefig(f"Voice1_{plt_name}_notes.pdf")
     plt.close()
 
     return None
@@ -142,7 +153,11 @@ def plt_flexibility_curve(parent_folder, x_axis_name: str) -> None:
 # plt_octave_frequency(2, False)
 # plt_octave_frequency(3, False)
 # plt_octave_frequency(4, False)
-# # plt_notes()
+predictions = pd.read_csv("Bach_Ridge.txt", sep=" ", header=None)
+plt_notes(predictions=list(predictions[0]), voice=1)
+plt_notes(predictions=list(predictions[1]), voice=2)
+plt_notes(predictions=list(predictions[2]), voice=3)
+plt_notes(predictions=list(predictions[3]), voice=4)
 # # plt_notes(reduced=True)
 
 # plt_flexibility_curve('voice1_note', "window_size")
