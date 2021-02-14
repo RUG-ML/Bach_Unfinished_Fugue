@@ -121,7 +121,7 @@ def fit_model_to_voice(voice: object, cv=False, regularization=False, learning=F
     # the learning=False clause is trained on the entire dataset
     if learning:
         voice.cv_losses = {'train': {'normal': [], 'feedback': []}, 'test': {'normal': [], 'feedback': []}}
-        voice.tscv = TimeSeriesSplit(n_splits=10)
+        voice.tscv = TimeSeriesSplit(n_splits=5)
         voice.cv_alphas = []
         # Split train and test data with default 80-20 ratio
         for train_index, test_index in voice.tscv.split(voice.X_encoded_windowed):

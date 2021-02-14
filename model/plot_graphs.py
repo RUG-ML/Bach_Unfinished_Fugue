@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 import pprint
-from model import Voice
-from model import notes_transformed_to_octaves, set_notes_transformed_to_octaves, data, reduced_notes
+from typing import Union
+
+from run import Voice
+from run import notes_transformed_to_octaves, set_notes_transformed_to_octaves, data, reduced_notes
 
 
-def plt_notes(reduced=False, predictions=None, voice=None) -> None:
+def plt_notes(reduced=False) -> None:
     """ Plot original and reduced notes - voice1 """
     def adjust_yticks():
         if reduced:
@@ -19,14 +21,9 @@ def plt_notes(reduced=False, predictions=None, voice=None) -> None:
         notes = reduced_notes[0]
         plt_name = "reduced"
         ylabel = "MIDI encoded and reduced pitch value"
-    elif not reduced and not predictions:
+    else:
         notes = data[0]
         plt_name = "original"
-        ylabel = "MIDI encoded pitch value"
-
-    if predictions and voice:
-        notes = predictions
-        plt_name = "prediction"
         ylabel = "MIDI encoded pitch value"
 
     pd_notes = pd.DataFrame([notes]).transpose()
@@ -37,14 +34,8 @@ def plt_notes(reduced=False, predictions=None, voice=None) -> None:
     plt.xticks(fontsize=fontsize)
     plt.xlabel("n", fontsize=fontsize + 5)
     plt.ylabel(ylabel, fontsize=fontsize)
-    # plt.vlines(3824, ymin=min(pd_notes), ymax=max(pd_notes), color="r", linestyles="solid")
-    plt.axvline(3824, color="r")
-    if predictions and voice:
-        plt.title(f"Voice {voice}", fontsize=fontsize)
-        figure.savefig(f"Voice{voice}_{plt_name}.pdf")
-    else:
-        plt.title(f"Voice 1", fontsize=fontsize)
-        figure.savefig(f"Voice1_{plt_name}_notes.pdf")
+    plt.title("Voice 1", fontsize=fontsize)
+    figure.savefig(f"Voice1_{plt_name}_notes.pdf")
     plt.close()
 
     return None
@@ -99,11 +90,38 @@ def plt_octave_histogram(voices=4) -> None:
     return None
 
 
-def plt_flexibility_curve(parent_folder, x_axis_name: str) -> None:
+def plot_flexibility(losses, fontsize, plot_title, x_axis_name, fig_name) -> None:
+    """ Plot the flexibility curves """
+
+    error_types = ["Train Error", "Test error"]
+    figure = plt.figure(figsize=(16, 12))
+    plt.plot(losses[0])
+    plt.plot(losses[1])
+    plt.ylim(ymin=min(min(losses[:])) * 0.9, ymax=max(max(losses[:])) * 1.1)
+
+    plt.xlabel(x_axis_name, fontsize=fontsize)
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    plt.ylabel(f"Averaged Cross-entropy loss", fontsize=fontsize)
+    plt.title(plot_title, fontsize=fontsize)
+
+    plt.legend(error_types, fontsize=fontsize)
+    plt.close()
+    pdf_name = f"Losses - {fig_name}.pdf"
+    figure.savefig(pdf_name)
+    print(f"{pdf_name} has been created")
+
+    return None
+
+
+def flexibility_curve(parent_folder, x_axis_name: str, plot_title: str, plotting=True) -> Union[list, None]:
+    """ Get flexibility curves for each model type, two lines per plot """
+
     path = os.path.abspath('.')
     os.chdir(f"..\\{parent_folder}")
-    child_folders = [f"{parent_folder}_weight1", f"{parent_folder}_weight2", f"{parent_folder}_weight3"]
-    fontsize = 20
+    # child_folders = [f"{parent_folder}_weight1", f"{parent_folder}_weight2", f"{parent_folder}_weight3"]
+    child_folders = [f"{parent_folder}_weight2"]
+    fontsize = 30
     for folder in child_folders:
         os.chdir(folder)
         print(f"Creating pdf in folder {os.getcwd()}...")
@@ -126,26 +144,44 @@ def plt_flexibility_curve(parent_folder, x_axis_name: str) -> None:
         # losses = [losses_train_normal, losses_train_feedback, losses_test_normal, losses_test_feedback]
         losses = [losses_train_normal, losses_test_normal]
         print("All files have been read.")
-        titles = ["Risks without feedback", "Risks with feedback"]
-        risks = ["Empirical Risk", "Expected Risk"]
-        figure = plt.figure(figsize=(16, 12))
-        # for i in range(2):
-        #     plt.subplot(2, 1, i+1)
-        plt.plot(losses[0])
-        plt.plot(losses[1])
-        plt.ylim(ymin=min(min(losses[:])) * 0.9, ymax=max(max(losses[:])) * 1.1)
-        plt.xlabel(x_axis_name, fontsize=fontsize)
-        plt.xticks(fontsize=fontsize)
-        plt.yticks(fontsize=fontsize)
-        plt.ylabel(f"Average Loss", fontsize=fontsize)
-        plt.legend(risks, fontsize=fontsize)
-        plt.title(f"{parent_folder.split('_')[0].capitalize()} {parent_folder.split('_')[1]} model performance", fontsize=fontsize)
-        plt.close()
-        pdf_name = f"Losses - {folder}.pdf"
-        figure.savefig(pdf_name)
-        print(f"{pdf_name} has been created")
+
+        if not plotting:
+            os.chdir(path)
+            return losses
+        else:
+            plot_flexibility(losses, fontsize, plot_title, x_axis_name, folder)
+
         os.chdir('..')
     os.chdir(path)
+
+    return None
+
+
+def joint_flexibility_curves(losses: list) -> None:
+    fontsize = 30
+    figure = plt.figure(figsize=(16, 12))
+    error_types = ["Train error", "Test error"]
+    colors = ["blue", "orange"]
+    for idx_l, loss_type in enumerate(losses):
+        for idx_v, voice in enumerate(loss_type):
+            plt.plot(voice, color=colors[idx_l])
+        
+    plt.xlabel("window size", fontsize=fontsize)
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    plt.ylabel(f"Averaged Cross-entropy loss", fontsize=fontsize)
+    plt.title("Singers 1-4: Note model performances", fontsize=fontsize)
+    plt.ylim(ymin=0, ymax=0.4)
+
+    plt.legend(error_types, fontsize=30, loc="upper right")
+    ax = plt.gca()
+    leg = ax.get_legend()
+    leg.legendHandles[0].set_color(colors[0])
+    leg.legendHandles[1].set_color(colors[1])
+
+    plt.close()
+    pdf_name = f"Losses - notes, all voices.pdf"
+    figure.savefig(pdf_name)
 
     return None
 
@@ -153,22 +189,22 @@ def plt_flexibility_curve(parent_folder, x_axis_name: str) -> None:
 # plt_octave_frequency(2, False)
 # plt_octave_frequency(3, False)
 # plt_octave_frequency(4, False)
-predictions = pd.read_csv("Bach_Ridge.txt", sep=" ", header=None)
-plt_notes(predictions=list(predictions[0]), voice=1)
-plt_notes(predictions=list(predictions[1]), voice=2)
-plt_notes(predictions=list(predictions[2]), voice=3)
-plt_notes(predictions=list(predictions[3]), voice=4)
+# # plt_notes()
 # # plt_notes(reduced=True)
 
-# plt_flexibility_curve('voice1_note', "window_size")
-# plt_flexibility_curve('voice1_octave', "window_size")
-# plt_flexibility_curve('voice2_note', "window_size")
-# plt_flexibility_curve('voice2_octave', "window_size")
-# plt_flexibility_curve('voice4_octave', "window_size")
-# plt_flexibility_curve('voice3_note', "window_size")
-# plt_flexibility_curve('voice3_octave', "window_size")
-# plt_flexibility_curve('voice4_note', "window_size")
-# plt_flexibility_curve('voice4_octave', "window_size")
+[v1_train_loss, v1_test_loss] = flexibility_curve('voice1_note', "window size",
+                                                  "First voice note model performance", plotting=False)
+# flexibility_curve('voice1_octave', "window size", "First voice octave note model performance")
+[v2_train_loss, v2_test_loss] = flexibility_curve('voice2_note', "window size",
+                                                  "Second voice note model performance", plotting=False)
+# flexibility_curve('voice2_octave', "window size", "Second voice octave note model performance")
+[v3_train_loss, v3_test_loss] = flexibility_curve('voice3_note', "window size",
+                                                  "Third voice note model performance", plotting=False)
+# flexibility_curve('voice3_octave', "window size", "Third voice octave note model performance")
+[v4_train_loss, v4_test_loss] = flexibility_curve('voice4_note', "window size",
+                                                  "Fourth voice note model performance", plotting=False)
+# plt_flexibility_curve('voice4_octave', "window size", "Fourth voice octave model performance")
 
 
-
+joint_flexibility_curves([[v1_train_loss, v2_train_loss, v3_train_loss, v4_train_loss],
+                         [v1_test_loss, v2_test_loss, v3_test_loss, v4_test_loss]])
