@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import catboost
 from tqdm import tqdm 
 from sklearn.model_selection import TimeSeriesSplit
+from catboost import CatBoostRegressor
 
 #%%
 
@@ -15,6 +16,8 @@ df0 = df.copy()
 #%%
 
 #feature engineering
+
+#ONLY RUN THIS CELL ONCE 
 
 #binary flag for when the singers sing
 a = 1
@@ -195,49 +198,156 @@ df2 = df2.transpose()
 
 df_4 = df2.iloc[:,3:]
 
-from catboost import CatBoostRegressor
+
 # Initialize data
 
 train_data4 = np.array(df_4.iloc[:,1:].astype('int'))
 
-
-
 train_labels4 = np.array(df_4.iloc[:,0].astype('int'))
 
-# Initialize CatBoostRegressor
-model4 = CatBoostRegressor(iterations=500,
-                          learning_rate=0.1,
-                          depth=3)
 
-# Fit model
-model4.fit(train_data4, train_labels4)
+splitter = TimeSeriesSplit(n_splits=5)
+its_list = [10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600]#,650,700,750,800,850,900,950,1000]
+depth_list = [2,3,4,5,6,7,8,9,10]
 
-pred4 = np.round(model4.predict(pd.DataFrame(df_4.iloc[-1,1:]).transpose().astype('int')),0)
+av_train_errors = []
+av_test_errors = []
+
+for its_num in tqdm(its_list):
+    train_errors = []
+    test_errors = []
+    for train_index, test_index in splitter.split(train_data4):
+        
+        X_train, X_test = train_data4[train_index], train_data4[test_index]
+        y_train, y_test = train_labels4[train_index], train_labels4[test_index]
+        
+    
+        # Initialize CatBoostRegressor
+        model4 = CatBoostRegressor(iterations=its_num,
+                                  learning_rate=0.01,
+                                  depth=3)
+    
+        # Fit model
+        model4.fit(X_train, y_train)
+        
+        pred_train4 = np.round(model4.predict(pd.DataFrame(X_train).astype('int')),0)
+        pred_test4 = np.round(model4.predict(pd.DataFrame(X_test).astype('int')),0)
+        
+        train_error = ((y_train-pred_train4)**2).mean()
+        train_errors.append(train_error)
+        
+        test_error = ((y_test-pred_test4)**2).mean()
+        test_errors.append(test_error)
+        
+    av_train_error = np.array(train_errors).mean()
+    av_train_errors.append(av_train_error)
+    
+    av_test_error = np.array(test_errors).mean()
+    av_test_errors.append(av_test_error)
+    
+av_test_errors4 = av_test_errors
+av_train_errors4 = av_train_errors
+    
+    
+#%%
+
+
+plt.figure(figsize = (8,5))
+
+
+plt.plot(its_list,av_train_errors4, label = ' Train error (MSE)', color = 'blue', linestyle = '-', alpha = 0.7)
+plt.plot(its_list,av_test_errors4, label = ' Test error (MSE)', color =  'g', linestyle = '-', alpha = 0.7)
+
+plt.scatter(its_list,av_train_errors4, s = 10, marker = 'x', color = 'blue')
+plt.scatter(its_list,av_test_errors4, s = 10, marker = 'x', color = 'g')
+
+plt.legend()
+plt.grid(alpha = 0.5, linestyle = '--')
+plt.xlabel('Number of Trees')
+plt.ylabel('MSE')
+
+plt.title('Singer 4')
+plt.show()
+
 
 #%%
+
 
 #singer3
 
 df_3 = pd.concat([df2.iloc[:,2], df2.iloc[:,4:]],axis = 1)
 
-from catboost import CatBoostRegressor
+
 # Initialize data
 
 train_data3 = np.array(df_3.iloc[:,1:].astype('int'))
 
-
-
 train_labels3 = np.array(df_3.iloc[:,0].astype('int'))
 
-# Initialize CatBoostRegressor
-model3 = CatBoostRegressor(iterations=500,
-                          learning_rate=0.1,
-                          depth=3)
 
-# Fit model
-model3.fit(train_data3, train_labels3)
+splitter = TimeSeriesSplit(n_splits=5)
+its_list = [10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600]#,650,700,750,800,850,900,950,1000]
+depth_list = [2,3,4,5,6,7,8,9,10]
 
-pred3 = np.round(model3.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astype('int')),0)
+av_train_errors = []
+av_test_errors = []
+
+for its_num in tqdm(its_list):
+    train_errors = []
+    test_errors = []
+    for train_index, test_index in splitter.split(train_data4):
+        
+        X_train, X_test = train_data3[train_index], train_data3[test_index]
+        y_train, y_test = train_labels3[train_index], train_labels3[test_index]
+        
+    
+        # Initialize CatBoostRegressor
+        model3 = CatBoostRegressor(iterations=its_num,
+                                  learning_rate=0.01,
+                                  depth=3)
+    
+        # Fit model
+        model3.fit(X_train, y_train)
+        
+        pred_train3 = np.round(model3.predict(pd.DataFrame(X_train).astype('int')),0)
+        pred_test3 = np.round(model3.predict(pd.DataFrame(X_test).astype('int')),0)
+        
+        train_error = ((y_train-pred_train3)**2).mean()
+        train_errors.append(train_error)
+        
+        test_error = ((y_test-pred_test3)**2).mean()
+        test_errors.append(test_error)
+        
+    av_train_error = np.array(train_errors).mean()
+    av_train_errors.append(av_train_error)
+    
+    av_test_error = np.array(test_errors).mean()
+    av_test_errors.append(av_test_error)
+    
+av_test_errors3 = av_test_errors
+av_train_errors3 = av_train_errors
+    
+    
+#%%
+
+
+plt.figure(figsize = (8,5))
+
+
+plt.plot(its_list,av_train_errors3, label = ' Train error (MSE)', color = 'r', linestyle = '-', alpha = 0.7)
+plt.plot(its_list,av_test_errors3, label = ' Test error (MSE)', color =  'g', linestyle = '-', alpha = 0.7)
+
+plt.scatter(its_list,av_train_errors3, s = 10, marker = 'x', color = 'r')
+plt.scatter(its_list,av_test_errors3, s = 10, marker = 'x', color = 'g')
+
+plt.legend()
+plt.grid(alpha = 0.5, linestyle = '--')
+plt.xlabel('Number of Trees')
+plt.ylabel('MSE')
+
+plt.title('Singer 3')
+plt.show()
+
 
 #%%
 
@@ -245,24 +355,78 @@ pred3 = np.round(model3.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astyp
 
 df_2 = pd.concat([df2.iloc[:,1], df2.iloc[:,4:]],axis = 1)
 
-from catboost import CatBoostRegressor
+
 # Initialize data
 
 train_data2 = np.array(df_2.iloc[:,1:].astype('int'))
 
-
-
 train_labels2 = np.array(df_2.iloc[:,0].astype('int'))
 
-# Initialize CatBoostRegressor
-model2 = CatBoostRegressor(iterations=500,
-                          learning_rate=0.1,
-                          depth=3)
 
-# Fit model
-model2.fit(train_data2, train_labels2)
+splitter = TimeSeriesSplit(n_splits=5)
+its_list = [10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600]#,650,700,750,800,850,900,950,1000]
+depth_list = [2,3,4,5,6,7,8,9,10]
 
-pred2 = np.round(model2.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astype('int')),0)
+av_train_errors = []
+av_test_errors = []
+
+for its_num in tqdm(its_list):
+    train_errors = []
+    test_errors = []
+    for train_index, test_index in splitter.split(train_data4):
+        
+        X_train, X_test = train_data2[train_index], train_data2[test_index]
+        y_train, y_test = train_labels2[train_index], train_labels2[test_index]
+        
+    
+        # Initialize CatBoostRegressor
+        model2 = CatBoostRegressor(iterations=its_num,
+                                  learning_rate=0.01,
+                                  depth=3)
+    
+        # Fit model
+        model2.fit(X_train, y_train)
+        
+        pred_train2 = np.round(model2.predict(pd.DataFrame(X_train).astype('int')),0)
+        pred_test2 = np.round(model2.predict(pd.DataFrame(X_test).astype('int')),0)
+        
+        train_error = ((y_train-pred_train2)**2).mean()
+        train_errors.append(train_error)
+        
+        test_error = ((y_test-pred_test2)**2).mean()
+        test_errors.append(test_error)
+        
+    av_train_error = np.array(train_errors).mean()
+    av_train_errors.append(av_train_error)
+    
+    av_test_error = np.array(test_errors).mean()
+    av_test_errors.append(av_test_error)
+    
+av_test_errors2 = av_test_errors
+av_train_errors2 = av_train_errors
+    
+    
+#%%
+
+
+plt.figure(figsize = (8,5))
+
+
+plt.plot(its_list,av_train_errors2, label = ' Train error (MSE)', color = 'r', linestyle = '-', alpha = 0.7)
+plt.plot(its_list,av_test_errors2, label = ' Test error (MSE)', color =  'g', linestyle = '-', alpha = 0.7)
+
+plt.scatter(its_list,av_train_errors2, s = 10, marker = 'x', color = 'r')
+plt.scatter(its_list,av_test_errors2, s = 10, marker = 'x', color = 'g')
+
+plt.legend()
+plt.grid(alpha = 0.5, linestyle = '--')
+plt.xlabel('Number of Trees')
+plt.ylabel('MSE')
+
+plt.title('Singer 2')
+plt.show()
+
+
 
 #%%
 
@@ -270,24 +434,121 @@ pred2 = np.round(model2.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astyp
 
 df_1 = pd.concat([df2.iloc[:,0], df2.iloc[:,4:]],axis = 1)
 
-from catboost import CatBoostRegressor
+
 # Initialize data
 
 train_data1 = np.array(df_1.iloc[:,1:].astype('int'))
 
-
-
 train_labels1 = np.array(df_1.iloc[:,0].astype('int'))
 
-# Initialize CatBoostRegressor
-model1 = CatBoostRegressor(iterations=500,
-                          learning_rate=0.1,
-                          depth=3)
 
-# Fit model
-model1.fit(train_data1, train_labels1)
+splitter = TimeSeriesSplit(n_splits=5)
+its_list = [10,20,30,40,50,60,70,80,90,100,150]#,200,250,300,350,400,450,500,550,600]#,650,700,750,800,850,900,950,1000]
+depth_list = [2,3,4,5,6,7,8,9,10]
 
-pred1 = np.round(model1.predict(pd.DataFrame(df_3.iloc[-1,1:]).transpose().astype('int')),0)
+av_train_errors = []
+av_test_errors = []
+
+for its_num in tqdm(its_list):
+    train_errors = []
+    test_errors = []
+    for train_index, test_index in splitter.split(train_data4):
+        
+        X_train, X_test = train_data1[train_index], train_data1[test_index]
+        y_train, y_test = train_labels1[train_index], train_labels1[test_index]
+        
+    
+        # Initialize CatBoostRegressor
+        model1 = CatBoostRegressor(iterations=its_num,
+                                  learning_rate=0.1,
+                                  depth=3)
+    
+        # Fit model
+        model1.fit(X_train, y_train)
+        
+        pred_train1 = np.round(model1.predict(pd.DataFrame(X_train).astype('int')),0)
+        pred_test1 = np.round(model1.predict(pd.DataFrame(X_test).astype('int')),0)
+        
+        train_error = ((y_train-pred_train1)**2).mean()
+        train_errors.append(train_error)
+        
+        test_error = ((y_test-pred_test1)**2).mean()
+        test_errors.append(test_error)
+        
+    av_train_error = np.array(train_errors).mean()
+    av_train_errors.append(av_train_error)
+    
+    av_test_error = np.array(test_errors).mean()
+    av_test_errors.append(av_test_error)
+    
+av_test_errors1 = av_test_errors
+av_train_errors1 = av_train_errors
+    
+    
+#%%
+
+
+plt.figure(figsize = (8,5))
+
+
+plt.plot(its_list,av_train_errors1, label = ' Train error (MSE)', color = 'r', linestyle = '-', alpha = 0.7)
+plt.plot(its_list,av_test_errors1, label = ' Test error (MSE)', color =  'g', linestyle = '-', alpha = 0.7)
+
+plt.scatter(its_list,av_train_errors1, s = 10, marker = 'x', color = 'r')
+plt.scatter(its_list,av_test_errors1, s = 10, marker = 'x', color = 'g')
+
+plt.legend()
+plt.grid(alpha = 0.5, linestyle = '--')
+plt.xlabel('Number of Trees')
+plt.ylabel('MSE')
+
+plt.title('Singer 1')
+plt.show()
+
+
+
+
+#%%
+
+
+
+plt.figure(figsize = (8,5))
+
+
+plt.plot(its_list,av_train_errors1, label = ' Train error (MSE)', color = 'blue', linestyle = '-', alpha = 0.5)
+plt.plot(its_list,av_test_errors1, label = ' Test error (MSE)', color =  'orange', linestyle = '-', alpha = 1)
+
+plt.scatter(its_list,av_train_errors1, s = 10, marker = 'x', color = 'blue', alpha = 0.6)
+plt.scatter(its_list,av_test_errors1, s = 10, marker = 'x', color = 'orange', alpha = 0.6)
+
+plt.plot(its_list,av_train_errors2, color = 'blue', linestyle = '-', alpha = 0.5)
+plt.plot(its_list,av_test_errors2,  color =  'orange', linestyle = '-', alpha = 1)
+
+plt.scatter(its_list,av_train_errors2, s = 10, marker = 'x', color = 'blue', alpha = 0.6)
+plt.scatter(its_list,av_test_errors2, s = 10, marker = 'x', color = 'orange', alpha = 0.6)
+
+plt.plot(its_list,av_train_errors3,  color = 'blue', linestyle = '-', alpha = 0.5)
+plt.plot(its_list,av_test_errors3,  color =  'orange', linestyle = '-', alpha = 1)
+
+plt.scatter(its_list,av_train_errors3, s = 10, marker = 'x', color = 'blue', alpha = 0.6)
+plt.scatter(its_list,av_test_errors3, s = 10, marker = 'x', color = 'orange', alpha = 0.6)
+
+plt.plot(its_list,av_train_errors4,  color = 'blue', linestyle = '-', alpha = 0.5)
+plt.plot(its_list,av_test_errors4, color =  'orange', linestyle = '-', alpha = 1)
+
+plt.scatter(its_list,av_train_errors4, s = 10, marker = 'x', color = 'blue', alpha = 0.6)
+plt.scatter(its_list,av_test_errors4, s = 10, marker = 'x', color = 'orange', alpha = 0.6)
+plt.legend(prop={'size': 12})
+plt.grid(alpha = 0.5, linestyle = '--')
+
+plt.xlabel('Number of Trees')
+plt.ylabel('MSE')
+
+plt.title('Singers 1-4 : MSE vs Number of Trees')
+plt.show()
+
+
+
 #%%
 
 
@@ -461,7 +722,7 @@ def next_note(df_pred, lag):
 
 #%%
 
-its = 550
+its = 100
 
 change_note1 = 0
 change_note2 = 0
@@ -482,14 +743,13 @@ df_pred.index = range(len(df_pred))
 df_pred_post = df_pred.copy()
 for i in range(3823,len(df_pred_post.iloc[:,0])):
     for j in range(4):
-        if df_pred_post.iloc[i,j] < 30 or df_pred_post.iloc[i,j] > 65  :
+        if df_pred_post.iloc[i,j] < 20:
             df_pred_post.iloc[i,j] = 0
             
             
+
 #%%
 
+np.savetxt('bach_pred_same_length100.txt', df_pred_post.values, fmt='%d', delimiter = '\t')
 
-
-df_pred_post = df_pred_post.iloc[(4375-550):,:]
-np.savetxt('bach_pred550.txt', df_pred_post.values, fmt='%d', delimiter = '\t')
 
